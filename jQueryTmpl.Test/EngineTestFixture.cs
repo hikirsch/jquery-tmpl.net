@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 using NUnit.Framework;
 
@@ -35,6 +36,17 @@ namespace jQueryTmpl.Test
             var data = new { firstName = "John" };
 
             TestRender(template, expected, data);
+        }
+
+        [Test]
+        public void RenderBooleanToJavascriptLiteral()
+        {
+            const string template = @"${boolean}";
+            const string expectedTrue = @"true";
+            const string expectedFalse = @"false";
+
+            TestRender(template, expectedTrue, new { boolean = true });
+            TestRender(template, expectedFalse, new { boolean = false });
         }
 
         [Test]
@@ -131,6 +143,62 @@ namespace jQueryTmpl.Test
 
             var trueData = new { IsCurrentUser = true, token = "foo" };
             var falseData = new { IsCurrentUser = false, token = "foo" };
+
+            TestRender(template, expectedTrue, trueData);
+            TestRender(template, expectedFalse, falseData);
+        }
+
+        [Test]
+        public void IfStatementBooleanLiteralTrue()
+        {
+            const string template = @"leaderboard light{{if Person.IsCurrentUser == true}} ${Person.token}{{/if}}";
+            const string expectedTrue = @"leaderboard light foo";
+            const string expectedFalse = @"leaderboard light";
+
+            var trueData = new { Person = new { IsCurrentUser = true, token = "foo" } };
+            var falseData = new { Person = new { IsCurrentUser = false, token = "foo" } };
+
+            TestRender(template, expectedTrue, trueData);
+            TestRender(template, expectedFalse, falseData);
+        }
+
+        [Test]
+        public void IfStatementBooleanLiteralFalse()
+        {
+            const string template = @"leaderboard light{{if Person.IsCurrentUser == false}} ${Person.token}{{/if}}";
+            const string expectedTrue = @"leaderboard light";
+            const string expectedFalse = @"leaderboard light foo";
+
+            var trueData = new { Person = new { IsCurrentUser = true, token = "foo" } };
+            var falseData = new { Person = new { IsCurrentUser = false, token = "foo" } };
+
+            TestRender(template, expectedTrue, trueData);
+            TestRender(template, expectedFalse, falseData);
+        }
+
+        [Test]
+        public void IfStatementNotOperator()
+        {
+            const string template = @"leaderboard light{{if !IsCurrentUser}} ${token}{{/if}}";
+            const string expectedTrue = @"leaderboard light";
+            const string expectedFalse = @"leaderboard light foo";
+
+            var trueData = new { IsCurrentUser = true, token = "foo" };
+            var falseData = new { IsCurrentUser = false, token = "foo" };
+
+            TestRender(template, expectedTrue, trueData);
+            TestRender(template, expectedFalse, falseData);
+        }
+
+        [Test]
+        public void IfStatementCompoundNotOperator()
+        {
+            const string template = @"leaderboard light{{if !Person.IsCurrentUser}} ${Person.token}{{/if}}";
+            const string expectedTrue = @"leaderboard light";
+            const string expectedFalse = @"leaderboard light foo";
+
+            var trueData = new { Person = new { IsCurrentUser = true, token = "foo" } };
+            var falseData = new { Person = new { IsCurrentUser = false, token = "foo" } };
 
             TestRender(template, expectedTrue, trueData);
             TestRender(template, expectedFalse, falseData);
@@ -542,6 +610,75 @@ namespace jQueryTmpl.Test
             TestRender(template, expected, new { data = 124 });
         }
 
+        [Test]
+        public void DictionaryBinding_Test()
+        {
+            const string template = @"<ul>{{each people}}<li>${$value.key} ${$value.value}</li>{{/each}}</ul>";
+            const string expected = @"<ul><li>First Last</li><li>A B</li><li>1 2</li></ul>";
+
+            var data = new {
+                people = new Dictionary<string, string> {
+                    { "First", "Last" },
+                    { "A", "B" },
+                    { "1", "2" }
+                }
+            };
+
+            TestRender(template, expected, data);
+        }
+
+        [Test]
+        public void Dictionary_ValuesBinding_Test()
+        {
+            const string template = @"<ul>{{each(i,myObj) people.values}}<li>${myObj}</li>{{/each}}</ul>";
+            const string expected = @"<ul><li>Last</li><li>B</li><li>2</li></ul>";
+
+            var data = new {
+                people = new Dictionary<string, string> {
+                    { "First", "Last" },
+                    { "A", "B" },
+                    { "1", "2" }
+                }
+            };
+
+            TestRender(template, expected, data);
+        }
+
+        [Test]
+        public void GlobalFunctionEvaluation()
+        {
+            const string template = @"<li>{{= func('abc')}}</li>";
+            const string expected = @"<li>abccba</li>";
+
+            var data = new { };
+            var options = new
+            {
+                func = (Func<string, string>)(x => x + x[2] + x[1] + x[0]),
+            };
+
+            TestRender(template, expected, data, options);
+        }
+
+        [Test]
+        public void EachStatementWithParentObjectValuesAndGlobalFunction()
+        {
+            const string template = @"<ul>{{each(i,v) people}}<li>${v} ${someValue} ${func('abc')}</li>{{/each}}</ul>";
+            const string expected = @"<ul><li>John Doe 1 abccba</li><li>Jane Smith 1 abccba</li><li>Jim Jones 1 abccba</li></ul>";
+
+            var options = new
+            {
+                func = (Func<string, string>)(x => x + x[2] + x[1] + x[0]),
+            };
+
+            var data = new
+            {
+                someValue = 1,
+                people = new[] { "John Doe", "Jane Smith", "Jim Jones" },
+            };
+
+            TestRender(template, expected, data, options);
+        }
+        
         private void TestRender(string template, string expected, object data, object options = null)
         {
             var result = TemplateEngine.Render(template, data, options);

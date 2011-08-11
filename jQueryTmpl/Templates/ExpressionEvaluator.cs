@@ -29,8 +29,8 @@ namespace jQueryTmpl.Templates
 
                 var memberInfo = FindMember(expression.Member, value);
 
-                if(memberInfo.Length == 0 && value is TemplateItem)
-                    memberInfo = FindMember(expression.Member,  value = ((TemplateItem)value).Options);
+                if(memberInfo.Length == 0 && _item.Options != null)
+                    memberInfo = FindMember(expression.Member, value = _item.Options);
 
                 if(memberInfo.Length > 0)
                     value = InvokeBestMatch(memberInfo, expression, value);
@@ -60,6 +60,10 @@ namespace jQueryTmpl.Templates
                 int number;
                 if(Int32.TryParse(expression.Member, out number))
                     return number;
+
+                bool boolean;
+                if(Boolean.TryParse(expression.Member, out boolean))
+                    return boolean;
 
                 if((expression.Member.StartsWith("\"") && expression.Member.EndsWith("\"")) || 
                    (expression.Member.StartsWith("'") && expression.Member.EndsWith("'")))

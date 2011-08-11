@@ -1,0 +1,42 @@
+﻿@using jQueryTmpl.Mvc
+@{
+    ViewBag.Title = "Test 1";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h1>Web Test 1</h1>
+
+<h2>Test Template</h2>
+<script style="font-family: monospace; display: block; white-space: pre;" type="text/html" id="test-1-jquery-tmpl">@{Html.RenderPartial("Test1");}</script>
+<hr />
+
+<h2>Javascript Result</h2>
+<div id="test-1-result"></div>
+
+<script>
+	var test1Object = {
+		TestSource: "JavaScript",
+		ObjectToLoop: {
+			key1: 'value1',
+			key2: 'value2',
+			key3: 'value3'
+		}
+	};
+
+	
+	$("#test-1-jquery-tmpl").tmpl(test1Object).appendTo("#test-1-result");
+</script>
+
+<h2>.NET Result</h2>
+@{
+	var test1Data = new {
+		TestSource = ".NET",
+		ObjectToLoop = new {
+			key1 = "value1",
+			key2 = "value2",
+			key3 = "value3"
+		}
+	};
+}
+@*TODO: why it breaks if i put Html.Raw() around this next line, why???*@
+@Html.RenderTemplate("Test1", test1Data) 
